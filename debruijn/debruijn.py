@@ -26,13 +26,13 @@ import statistics
 import matplotlib.pyplot as plt
 matplotlib.use("Agg")
 
-__author__ = "Your Name"
+__author__ = "Adriana Lecourieux"
 __copyright__ = "Universite Paris Diderot"
-__credits__ = ["Your Name"]
+__credits__ = ["Adriana Lecourieux"]
 __license__ = "GPL"
 __version__ = "1.0.0"
-__maintainer__ = "Your Name"
-__email__ = "your@email.fr"
+__maintainer__ = "Adriana Lecourieux"
+__email__ = "adriana.lecourieux@gmail.com"
 __status__ = "Developpement"
 
 def isfile(path):
@@ -68,18 +68,42 @@ def get_arguments():
                         help="Save graph as image (png)")
     return parser.parse_args()
 
+#dans fastq plein d'info, on veut lire la seq
+#la premier fonction fait yield de tous les reads
+#lit une ligne puis on passe les 3 suivantes
+#with open est un generateur de fichier, si on fait next donne ligne suivante
+#for i du fichier ouvert (générateur)
 
 def read_fastq(fastq_file):
-    pass
+    with open (fastq_file, "r") as file: # open the file
+        for ligne in file: # iteration on each line
+            yield next(file).strip() # save generator
+            next(file) # skip lines
+            next(file)
+            
+            
+
+#on a tous les tests 
+
 
 
 def cut_kmer(read, kmer_size):
-    pass
-
+    for i in range(len(read) - kmer_size + 1):
+        yield read[i:i+kmer_size]
+        
+        
+    
 
 def build_kmer_dict(fastq_file, kmer_size):
-    pass
-
+    kmer_dict = {}
+    for read in read_fastq(fastq_file):
+        for kmer in cut_kmer(read, kmer_size):
+            if kmer not in kmer_dict:
+                kmer_dict[kmer] = 1
+            else:
+                kmer_dict[kmer] +=1
+    return(kmer_dict)
+            
 
 def build_graph(kmer_dict):
     pass
@@ -164,6 +188,7 @@ def main():
     """
     # Get arguments
     args = get_arguments()
+    build_kmer_dict(args.fastq_file, args.kmer_size)
 
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
