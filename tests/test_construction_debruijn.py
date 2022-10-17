@@ -37,6 +37,7 @@ def test_build_kmer_dict():
 
 def test_build_graph():
     file = open(os.path.abspath(os.path.join(os.path.dirname(__file__), "kmer.pck")),'rb')
+    print(file)
     kmer_dict = pickle.load(file)
     graph = build_graph(kmer_dict)
     #TCAGAGA

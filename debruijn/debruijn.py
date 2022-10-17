@@ -15,6 +15,7 @@
 
 import argparse
 import os
+from pickle import FALSE
 import sys
 import networkx as nx
 import matplotlib
@@ -106,8 +107,12 @@ def build_kmer_dict(fastq_file, kmer_size):
             
 
 def build_graph(kmer_dict):
-    pass
-
+    digraph = nx.DiGraph()
+    for kmer, occurence in kmer_dict.items():
+        digraph.add_edge(kmer[:-1], kmer[1:], weight = occurence)
+    return(digraph)
+        
+        
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     pass
@@ -136,16 +141,40 @@ def solve_out_tips(graph, ending_nodes):
     pass
 
 def get_starting_nodes(graph):
-    pass
+    starting_node = []
+    for node in graph.nodes():
+        #print(node)
+        if not list(graph.predecessors(node)):
+            starting_node.append(node)
+    return(starting_node)
+                       
 
 def get_sink_nodes(graph):
-    pass
+    ending_node = []
+    for node in graph.nodes():
+        #print(node)
+        if not list(graph.successors(node)):
+            ending_node.append(node)
+    return(ending_node)
 
 def get_contigs(graph, starting_nodes, ending_nodes):
-    pass
+    contig = []
+    for start_node in starting_nodes:
+        for end_node in ending_nodes:
+            if nx.has_path(graph, start_node, end_node) == True:
+                for path in nx.all_simple_paths(graph, start_node,end_node): #pour le premier chemin
+                    seq = path[0] #1er node
+                    for node in path[1:]: #pour chaque nouveau node on prend que la pos 2 pour "merge"
+                        seq += node[-1]
+                    contig.append(tuple((seq, len(seq))))
+    return(contig)
 
 def save_contigs(contigs_list, output_file):
-    pass
+    with open(output_file, "w") as file:
+        for i, (contig, length) in enumerate(contigs_list):
+            file.write(f'>contig{i} len={length}\n')
+            file.write(f'{fill(contigs_list[i][0], width=80)}\n')
+            
 
 
 def fill(text, width=80):
@@ -188,7 +217,12 @@ def main():
     """
     # Get arguments
     args = get_arguments()
-    build_kmer_dict(args.fastq_file, args.kmer_size)
+    kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
+    graph = build_graph(kmer_dict)
+    starting_nodes = get_starting_nodes(graph)
+    ending_nodes = get_sink_nodes(graph)
+    contigs_list = get_contigs(graph, starting_nodes, ending_nodes)
+    save_contigs(contigs_list, "contigs_list.txt")
 
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
