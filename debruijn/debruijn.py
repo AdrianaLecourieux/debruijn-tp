@@ -16,6 +16,7 @@
 import argparse
 import os
 from pickle import FALSE
+from re import T
 import sys
 import networkx as nx
 import matplotlib
@@ -115,19 +116,28 @@ def build_graph(kmer_dict):
         
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
-    pass
+    for node in path_list:
+        if delete_entry_node == True and delete_sink_node == True:
+            graph.remove_nodes_from(node)
+        elif delete_entry_node == True:
+            graph.remove_nodes_from(node[:-1])
+        elif delete_sink_node == True:
+            graph.remove_nodes_from(node[1:])
+        elif delete_entry_node == False and delete_sink_node == False:
+            graph.remove_nodes_from(node[1:-1])
+    return(graph)
 
 def std(data):
-    pass
-
+    return statistics.stdev(data)
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
-    pass
+    for i in range(len(path_list)):
+        if weight_avg_list[i]
 
 def path_average_weight(graph, path):
-    pass
-
+    return(statistics.mean([d["weight"] for (u, v, d) in graph.subgraph(path).edges(data=True)]))
+    
 def solve_bubble(graph, ancestor_node, descendant_node):
     pass
 
@@ -172,7 +182,7 @@ def get_contigs(graph, starting_nodes, ending_nodes):
 def save_contigs(contigs_list, output_file):
     with open(output_file, "w") as file:
         for i, (contig, length) in enumerate(contigs_list):
-            file.write(f'>contig{i} len={length}\n')
+            file.write(f'>contig_{i} len={length}\n')
             file.write(f'{fill(contigs_list[i][0], width=80)}\n')
             
 
@@ -223,7 +233,8 @@ def main():
     ending_nodes = get_sink_nodes(graph)
     contigs_list = get_contigs(graph, starting_nodes, ending_nodes)
     save_contigs(contigs_list, "contigs_list.txt")
-
+    
+    path_average_weight(graph, path)
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe
