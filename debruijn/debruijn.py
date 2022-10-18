@@ -14,6 +14,7 @@
 """Perform assembly based on debruijn graph."""
 
 import argparse
+from importlib.resources import path
 import os
 from pickle import FALSE
 from re import T
@@ -77,19 +78,40 @@ def get_arguments():
 #for i du fichier ouvert (générateur)
 
 def read_fastq(fastq_file):
+    """Read fastq file and conserve sequence in a generator.
+
+    Parameters
+    ----------
+    fastq_file : fastq file
+        Name of the fastq file
+
+    Returns
+    -------
+    yield
+        A sequences generator 
+    """
     with open (fastq_file, "r") as file: # open the file
         for ligne in file: # iteration on each line
             yield next(file).strip() # save generator
             next(file) # skip lines
             next(file)
             
-            
-
-#on a tous les tests 
-
-
 
 def cut_kmer(read, kmer_size):
+    """Create a k-mer generator.
+
+    Parameters
+    ----------
+    read :
+        sequence from a generator 
+    kmer_size : int
+        length of k-mer
+
+    Returns
+    -------
+    yield
+        A k-mers generator 
+    """
     for i in range(len(read) - kmer_size + 1):
         yield read[i:i+kmer_size]
         
@@ -97,6 +119,20 @@ def cut_kmer(read, kmer_size):
     
 
 def build_kmer_dict(fastq_file, kmer_size):
+    """Create a kmer dictionnary.
+
+    Parameters
+    ----------
+    fastq_file  :
+        fatq file
+    kmer_size : int
+        length of k-mer
+
+    Returns
+    -------
+    kmer_dict :
+        dictionnary of all the k-mers with their occurence
+    """
     kmer_dict = {}
     for read in read_fastq(fastq_file):
         for kmer in cut_kmer(read, kmer_size):
@@ -108,6 +144,18 @@ def build_kmer_dict(fastq_file, kmer_size):
             
 
 def build_graph(kmer_dict):
+    """Create Digraph from k-mers prefixes and suffixes described.
+
+    Parameters
+    ----------
+    kmer_dict  :
+        dictionnary of all the k-mers with their occurence
+
+    Returns
+    -------
+    digraph
+        tree of k-mers prefixes and suffixes described
+    """
     digraph = nx.DiGraph()
     for kmer, occurence in kmer_dict.items():
         digraph.add_edge(kmer[:-1], kmer[1:], weight = occurence)
@@ -116,6 +164,23 @@ def build_graph(kmer_dict):
         
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
+    """Create a kmer dictionnary.
+
+    Parameters
+    ----------
+    graph  : digraph
+        tree of k-mers prefixes and suffixes described
+    path_list : list
+        list of paths
+    delete_entry_node : boolean
+        true if enter node of each path will be remove
+    delete_sink_node : boolean
+        true if output node of each path will be remove
+    Returns
+    -------
+    graph : digraph
+        tree of k-mers prefixes and suffixes described
+    """
     for node in path_list:
         if delete_entry_node == True and delete_sink_node == True:
             graph.remove_nodes_from(node)
@@ -128,29 +193,140 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     return(graph)
 
 def std(data):
+    """Calcul standard deviation.
+
+    Parameters
+    ----------
+    data  : list
+        list 
+
+    Returns
+    -------
+    data : float
+        Result of standard deviation of data
+    """
     return statistics.stdev(data)
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
-    for i in range(len(path_list)):
-        if weight_avg_list[i]
+    weight_std = std(weight_avg_list)
+    length_std = std(path_length)
+    
+    if weight_std != 0:
+        best_path = weight_avg_list.index(max(weight_avg_list))
+    elif weight_std == 0:
+        if length_std > 0:
+            best_path = path_length.index(max(path_length))
+        elif length_std == 0:
+            best_path = randint(0, len(path_list)-1)
+    
+    for index in range(len(path_list)):
+        if path_list[index] != path_list[best_path]:
+            graph = remove_paths(graph, [path_list[index]], delete_entry_node, delete_sink_node)
+    return(graph)
 
 def path_average_weight(graph, path):
+    """Calcul average weight of paths.
+
+    Parameters
+    ----------
+    graph  : digraph from networkx  
+
+    Returns
+    -------
+    float
+        Result of average weight of paths
+    """
     return(statistics.mean([d["weight"] for (u, v, d) in graph.subgraph(path).edges(data=True)]))
     
 def solve_bubble(graph, ancestor_node, descendant_node):
-    pass
+    """Solve bubbles.
+
+    Parameters
+    ----------
+    graph  : digraph from networkx  
+    ancestor_node :
+        the ancestor node
+    descendant_node :
+        the descendant node
+    Returns
+    -------
+    graph
+        digraph without bubble
+    """
+    path_list = list(nx.all_simple_paths(graph, ancestor_node, descendant_node))
+    path_length = []
+    weight_avg_list = []
+    
+    for path in path_list:
+        weight_avg_list.append(path_average_weight(graph, path))
+        path_length.append(len(path))
+    graph = select_best_path(graph, path_list, path_length, weight_avg_list)
+    
+    return(graph)
 
 def simplify_bubbles(graph):
-    pass
+    """Solve bubbles.
+
+    Parameters
+    ----------
+    graph  : digraph from networkx  
+    
+    Returns
+    -------
+    graph
+        digraph without bubble
+    """
+    bubble = False
+    graph_node = graph.nodes()
+    for node in graph_node:
+        predecessor_list = list(graph.predecessors(node))
+        if len(predecessor_list) > 1:
+            for i in range(len(predecessor_list)-1):
+                node_i = predecessor_list[i]
+                for j in range(i+1, len(predecessor_list)):
+                    node_j = predecessor_list[j]
+                    ancestor_node = nx.lowest_common_ancestor(graph,node_i, node_j)
+                    if ancestor_node != None:
+                        bubble = True
+                        break
+            if bubble == True:
+                break         
+    if bubble == True:                
+      graphe = simplify_bubbles(solve_bubble(graph, ancestor_node, node))      
+    return(graph)
 
 def solve_entry_tips(graph, starting_nodes):
-    pass
+    many_entries = False
+    path_list = []
+    path_list2 = []
+    path_weight = []
+    graph_node = graph.nodes()
+    for node in graph_node:
+        predecessor_list = list(graph.predecessors(node))
+        if len(predecessor_list) > 1:
+            for i in starting_nodes:
+                for path in nx.all_simple_paths(graph, i, node):
+    
+    graph = select_best_path(graph, path_list, path_list2, path_weight, delete_entry_node=True, delete_sink_node=False)         
+    return(graph)
 
 def solve_out_tips(graph, ending_nodes):
     pass
 
 def get_starting_nodes(graph):
+    """Create a list of all the enters nodes.
+
+    Parameters
+    ----------
+    graph  :
+        Digraph from networkx 
+
+    Returns
+    -------
+    starting_node : list
+        list of enter nodes
+    """
     starting_node = []
     for node in graph.nodes():
         #print(node)
@@ -160,14 +336,41 @@ def get_starting_nodes(graph):
                        
 
 def get_sink_nodes(graph):
+    """Create a list of all the output nodes.
+
+    Parameters
+    ----------
+    graph  :
+        Digraph from networkx 
+
+    Returns
+    -------
+    ending_node : list
+        list of output nodes
+    """
     ending_node = []
     for node in graph.nodes():
-        #print(node)
         if not list(graph.successors(node)):
             ending_node.append(node)
     return(ending_node)
 
 def get_contigs(graph, starting_nodes, ending_nodes):
+    """Create a tuple of contigs with their length.
+
+    Parameters
+    ----------
+    graph  :
+        Digraph from networkx 
+    starting_node
+        list of enter nodes
+    ending_node :
+        list of output nodes
+    
+    Returns
+    -------
+    contig : tuple
+        tuple of contigs with their length
+    """
     contig = []
     for start_node in starting_nodes:
         for end_node in ending_nodes:
@@ -180,6 +383,14 @@ def get_contigs(graph, starting_nodes, ending_nodes):
     return(contig)
 
 def save_contigs(contigs_list, output_file):
+    """Create a file with the contigs in fasta format.
+    Parameters
+    ----------
+    contigs_list  : list
+        Digraph from networkx 
+    output_file : string
+        name of output file
+    """
     with open(output_file, "w") as file:
         for i, (contig, length) in enumerate(contigs_list):
             file.write(f'>contig_{i} len={length}\n')
