@@ -205,7 +205,7 @@ def std(data):
     data : float
         Result of standard deviation of data
     """
-    return statistics.stdev(data)
+    return (statistics.stdev(data))
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
@@ -296,23 +296,49 @@ def simplify_bubbles(graph):
       graphe = simplify_bubbles(solve_bubble(graph, ancestor_node, node))      
     return(graph)
 
-def solve_entry_tips(graph, starting_nodes):
-    many_entries = False
-    path_list = []
-    path_list2 = []
-    path_weight = []
-    graph_node = graph.nodes()
-    for node in graph_node:
-        predecessor_list = list(graph.predecessors(node))
-        if len(predecessor_list) > 1:
-            for i in starting_nodes:
-                for path in nx.all_simple_paths(graph, i, node):
+def solve_entry_tips(graph, starting_nodes):    
+    # arriver à générer les combinaisons de points d'entrees
     
-    graph = select_best_path(graph, path_list, path_list2, path_weight, delete_entry_node=True, delete_sink_node=False)         
+    predecessor = []
+    path_list = []
+    path_length = []
+    weight_avg_list = []
+    graph_node = graph.nodes()
+    
+    for node in starting_nodes:
+        for desc in nx.descendants(graph, node):
+            if len(graph.pred[desc]) > 2 and desc not in predecessor:
+                predecessor.append(desc)
+    for i in starting_nodes:            
+        for pred in predecessor:
+            for path in nx.all_simple_paths(graph, i, pred):
+                path_list.append(path)
+                path_length.append(path)
+                if len(path) > 2:
+                    weight_avg_list.append(path_average_weight(graph, path))
+    graph = select_best_path(graph, path_list, path_length, weight_avg_list, delete_entry_node=True, delete_sink_node=False)         
     return(graph)
 
 def solve_out_tips(graph, ending_nodes):
-    pass
+    descendant = []
+    path_list = []
+    path_length = []
+    weight_avg_list = []
+    graph_node = graph.nodes()
+    
+    for node in ending_nodes:
+        for desc in nx.ancestors(graph, node):
+            if len(graph.pred[desc]) > 2 and desc not in descendant:
+                descendant.append(desc)
+    for i in ending_nodes:            
+        for pred in descendant:
+            for path in nx.all_simple_paths(graph, i, pred):
+                path_list.append(path)
+                path_length.append(path)
+                if len(path) > 2:
+                    weight_avg_list.append(path_average_weight(graph, path))
+    graph = select_best_path(graph, path_list, path_length, weight_avg_list, delete_entry_node=False, delete_sink_node=True)         
+    return(graph)
 
 def get_starting_nodes(graph):
     """Create a list of all the enters nodes.
@@ -329,7 +355,6 @@ def get_starting_nodes(graph):
     """
     starting_node = []
     for node in graph.nodes():
-        #print(node)
         if not list(graph.predecessors(node)):
             starting_node.append(node)
     return(starting_node)
