@@ -209,6 +209,22 @@ def std(data):
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
+    """Select best path from path lisst
+
+    Parameters
+    ----------
+    graph  : digraph
+    path_list : list of path
+    path_length : list of path lengths
+    weight_avg_list : list of path weights
+    delete_entry_node: bolean
+    delete_sink_node : bolean
+
+    Returns
+    -------
+    graph : digraph
+        Digraph with best path
+    """
     weight_std = std(weight_avg_list)
     length_std = std(path_length)
     
@@ -296,7 +312,18 @@ def simplify_bubbles(graph):
       graphe = simplify_bubbles(solve_bubble(graph, ancestor_node, node))      
     return(graph)
 
-def solve_entry_tips(graph, starting_nodes):    
+def solve_entry_tips(graph, starting_nodes):   
+    """Resolve entry tips.
+
+    Parameters
+    ----------
+    graph 
+    starting_nodes 
+
+    Returns
+    -------
+    graph
+    """ 
     # arriver à générer les combinaisons de points d'entrees
     
     predecessor = []
@@ -320,6 +347,17 @@ def solve_entry_tips(graph, starting_nodes):
     return(graph)
 
 def solve_out_tips(graph, ending_nodes):
+    """Resolve out tips.
+
+    Parameters
+    ----------
+    graph 
+    ending_nodes : 
+
+    Returns
+    -------
+    graph
+    """ 
     descendant = []
     path_list = []
     path_length = []
