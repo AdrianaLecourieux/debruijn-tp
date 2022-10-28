@@ -352,7 +352,7 @@ def solve_out_tips(graph, ending_nodes):
     Parameters
     ----------
     graph 
-    ending_nodes : 
+    ending_nodes
 
     Returns
     -------
